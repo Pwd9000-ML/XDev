@@ -85,30 +85,36 @@ for ($i = 1; $i -le $SimulateRuns; $i++) {
     }
     $hashtags = $hashtags.Trim()
 
-    # Build message
+    # Build message (X wraps URLs via t.co = always 23 chars)
+    $tcoLength = 23
     $blogUrl = $blogData.url
     $twitterUsername = $blogData.user.twitter_username
-    $Message = "RT: $($blogData.title), by @$twitterUsername. $($hashtags) $($blogUrl)"
+    $textPrefix = "RT: $($blogData.title), by @$twitterUsername. $($hashtags) "
+    $Message = $textPrefix + $blogUrl
 
-    # Truncate if needed
+    # Calculate weighted length: text (actual) + URL (23 chars for t.co)
+    $weightedLength = $textPrefix.Length + $tcoLength
+
+    # Truncate if weighted length exceeds 280
     $truncated = $false
-    if ($Message.Length -gt 280) {
-        $availableLength = 280 - $blogUrl.Length - 4
-        $truncatedPrefix = $Message.Substring(0, $availableLength) + "... "
+    if ($weightedLength -gt 280) {
+        $availableTextLength = 280 - $tcoLength - 4  # 4 for "... "
+        $truncatedPrefix = $textPrefix.Substring(0, $availableTextLength) + "... "
         $Message = $truncatedPrefix + $blogUrl
+        $weightedLength = $truncatedPrefix.Length + $tcoLength
         $truncated = $true
     }
 
-    # Status color based on length
+    # Status color based on weighted length
     $charCount = $Message.Length
-    if ($charCount -le 280) { $color = 'Green' } else { $color = 'Red' }
+    if ($weightedLength -le 280) { $color = 'Green' } else { $color = 'Red' }
 
     Write-Host "  --- Run $i ---" -ForegroundColor Cyan
     Write-Host "  Blog: $($blogData.title)" -ForegroundColor White
     Write-Host "  Published: $($blogData.published_at)" -ForegroundColor DarkGray
     Write-Host "  URL: $blogUrl" -ForegroundColor DarkGray
     Write-Host "  Tags: $($blogData.tags)" -ForegroundColor DarkGray
-    Write-Host "  Message ($charCount/280 chars)$(if($truncated){' [TRUNCATED]'}):" -ForegroundColor $color
+    Write-Host "  Message (weighted: $weightedLength/280, actual: $charCount chars)$(if($truncated){' [TRUNCATED]'}):" -ForegroundColor $color
     Write-Host "  $Message" -ForegroundColor White
     Write-Host ""
 }

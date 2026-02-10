@@ -10,6 +10,36 @@ if ($Timer.IsPastDue) {
 }
 
 # ============================================================================
+# SCHEDULE GUARD - Only post on the intended day/time slots:
+#   - Wednesday 08:30 UTC (EU morning peak)
+#   - Thursday  13:30 UTC (US morning peak / EU afternoon)
+# The CRON fires at 08:30 and 13:30 on both Wed & Thu (4 times).
+# This guard skips the 2 unintended slots (Wed 13:30 and Thu 08:30).
+# Uses a 15-minute grace window to account for cold-start delays.
+# ============================================================================
+$utcDay = $currentUTCtime.DayOfWeek
+$utcTotalMinutes = $currentUTCtime.Hour * 60 + $currentUTCtime.Minute
+$graceMinutes = 15  # Allow up to 15 minutes late from cold start
+
+$scheduledSlots = @(
+    @{ Day = 'Wednesday'; Minutes = 510 }   # 08:30 UTC (8*60+30=510) → EU morning
+    @{ Day = 'Thursday';  Minutes = 810 }   # 13:30 UTC (13*60+30=810) → US morning
+)
+
+$isScheduledSlot = $scheduledSlots | Where-Object {
+    $_.Day -eq $utcDay -and
+    $utcTotalMinutes -ge $_.Minutes -and
+    $utcTotalMinutes -le ($_.Minutes + $graceMinutes)
+}
+
+if (-not $isScheduledSlot) {
+    Write-Host "Skipping: Not a scheduled posting slot ($utcDay $($currentUTCtime.ToString('HH:mm')) UTC). Active slots: Wed 08:30, Thu 13:30 UTC (±${graceMinutes}min grace)."
+    return
+}
+
+Write-Host "Active posting slot: $utcDay $($currentUTCtime.ToString('HH:mm')) UTC"
+
+# ============================================================================
 # HELPER FUNCTIONS
 # ============================================================================
 
@@ -277,21 +307,30 @@ try {
     $hashtags = $hashtags.Trim()
 
     # 3. Compose the post message (max 280 chars for X)
-    # Use the direct blog URL (no URL shortener)
+    # X wraps all URLs via t.co, which always counts as 23 characters
+    # regardless of actual URL length. We use this for accurate truncation.
+    $tcoLength = 23  # t.co wrapped URL always counts as 23 chars
+
     $blogUrl = $blogToPost.url
     # Use twitter_username from DEV.to profile (field still named twitter_username in DEV.to API)
-    $Message = "RT: $($blogToPost.title), by @$($blogToPost.user.twitter_username). $($hashtags) $($blogUrl)"
+    $textPrefix = "RT: $($blogToPost.title), by @$($blogToPost.user.twitter_username). $($hashtags) "
+    $Message = $textPrefix + $blogUrl
 
-    # Truncate if over 280 characters (preserve URL at end)
-    if ($Message.Length -gt 280) {
-        $availableLength = 280 - $blogUrl.Length - 4  # 4 for "... "
-        $truncatedPrefix = $Message.Substring(0, $availableLength) + "... "
+    # Calculate weighted length: text portion (actual chars) + URL (23 chars for t.co)
+    $weightedLength = $textPrefix.Length + $tcoLength
+    Write-Host "Weighted character count: $weightedLength / 280 (URL counts as $tcoLength via t.co)"
+
+    # Truncate if weighted length exceeds 280 characters (preserve URL at end)
+    if ($weightedLength -gt 280) {
+        $availableTextLength = 280 - $tcoLength - 4  # 4 for "... "
+        $truncatedPrefix = $textPrefix.Substring(0, $availableTextLength) + "... "
         $Message = $truncatedPrefix + $blogUrl
-        Write-Host "Message truncated to fit 280 character limit."
+        $weightedLength = $truncatedPrefix.Length + $tcoLength
+        Write-Host "Message truncated to fit 280 character limit (weighted: $weightedLength)."
     }
 
     Write-Host "Posting to X: $Message"
-    Write-Host "Message length: $($Message.Length) / 280 characters"
+    Write-Host "Actual message length: $($Message.Length) chars | Weighted (t.co): $weightedLength / 280"
 
     # 4. Post to X using API v2 with OAuth 1.0a (skip if dry-run)
     if ($dryRun -eq 'true') {
