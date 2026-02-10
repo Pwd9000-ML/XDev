@@ -136,6 +136,30 @@ function Get-Blog {
     $blogCount = $availableBlogIds.Count
     Write-Output "$blogCount blogs left to post on X"
 
+    # If no blogs are available (all excluded by ID/year filters), reset tracker and retry
+    if ($blogCount -eq 0) {
+        Write-Warning "No available blogs to post. All blogs may be excluded or already tracked. Resetting tracker and retrying."
+        if ($records) {
+            try {
+                $records | Remove-AzTableRow -table $cloudTable -Verbose
+                $records = $null
+            }
+            catch {
+                Write-Error $_.Exception.Message
+            }
+        }
+
+        # Recalculate available blogs after reset
+        $availableBlogIds = $blogPosts.id
+        $blogCount = $availableBlogIds.Count
+
+        if ($blogCount -eq 0) {
+            Write-Error "No blogs available even after tracker reset. Check excludeBlogIds/excludeBlogYears filters or DEV.to API."
+            return $null
+        }
+        Write-Host "Tracker reset complete. $blogCount blogs now available."
+    }
+
     # Reset rotation when only 1 blog left
     $Reset = ($blogCount -eq 1)
 
