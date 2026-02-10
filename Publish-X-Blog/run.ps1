@@ -252,6 +252,9 @@ $storageAccountName = $env:Function_SaActName   # Storage account name for track
 $excludeIds = $env:excludeBlogIds               # e.g. "1234, 1235, 1236"
 $excludeYears = $env:excludeBlogYears            # e.g. "2024" or "2023, 2024"
 
+# Dry-run mode: set to "true" to test without posting to X (no credits used)
+$dryRun = $env:dryRun                           # e.g. "true" to skip posting
+
 # X (formerly Twitter) API credentials - from X Developer Console (console.x.com)
 $xApiKey = $env:xApiKey                         # Consumer Key (API Key)
 $xApiSecret = $env:xApiSecret                   # Consumer Secret (API Secret)
@@ -288,13 +291,25 @@ try {
     }
 
     Write-Host "Posting to X: $Message"
+    Write-Host "Message length: $($Message.Length) / 280 characters"
 
-    # 4. Post to X using API v2 with OAuth 1.0a
-    Send-XPost -Message $Message `
-        -ApiKey $xApiKey `
-        -ApiSecret $xApiSecret `
-        -AccessToken $xAccessToken `
-        -AccessTokenSecret $xAccessTokenSecret
+    # 4. Post to X using API v2 with OAuth 1.0a (skip if dry-run)
+    if ($dryRun -eq 'true') {
+        Write-Host "=== DRY RUN MODE === Post NOT sent to X. Message that would be posted:"
+        Write-Host $Message
+        Write-Host "Blog title: $($blogToPost.title)"
+        Write-Host "Blog URL: $($blogToPost.url)"
+        Write-Host "Blog tags: $($blogToPost.tags)"
+        Write-Host "Published: $($blogToPost.published_at)"
+        Write-Host "=== DRY RUN COMPLETE ==="
+    }
+    else {
+        Send-XPost -Message $Message `
+            -ApiKey $xApiKey `
+            -ApiSecret $xApiSecret `
+            -AccessToken $xAccessToken `
+            -AccessTokenSecret $xAccessTokenSecret
+    }
 
 }
 catch {
