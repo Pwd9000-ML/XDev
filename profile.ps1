@@ -9,14 +9,9 @@
 # You can define helper functions, run commands, or specify environment
 # variables in this file.
 
-# Authenticate with Azure PowerShell using MSI.
-# Remove this if you are not planning on using MSI or Azure PowerShell.
-if ($env:MSI_SECRET) {
+# Authenticate with Azure PowerShell using Managed Identity.
+# Required for Azure Table Storage operations (blog post rotation tracking).
+if ($env:IDENTITY_ENDPOINT) {
     Disable-AzContextAutosave -Scope Process | Out-Null
     Connect-AzAccount -Identity
 }
-
-# Uncomment the next line to enable legacy AzureRm alias in Azure PowerShell.
-# Enable-AzureRmAlias
-
-# You can also define functions or aliases that can be used in your functions.
