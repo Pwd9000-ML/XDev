@@ -16,28 +16,38 @@ if ($Timer.IsPastDue) {
 # The CRON fires at 08:30 and 13:30 on both Wed & Thu (4 times).
 # This guard skips the 2 unintended slots (Wed 13:30 and Thu 08:30).
 # Uses a 15-minute grace window to account for cold-start delays.
+#
+# Set App Setting 'forceRun' to 'true' to bypass the schedule guard
+# for manual/test runs. Remember to set it back to 'false' afterwards.
 # ============================================================================
-$utcDay = $currentUTCtime.DayOfWeek
-$utcTotalMinutes = $currentUTCtime.Hour * 60 + $currentUTCtime.Minute
-$graceMinutes = 15  # Allow up to 15 minutes late from cold start
+$forceRun = $env:forceRun
 
-$scheduledSlots = @(
-    @{ Day = 'Wednesday'; Minutes = 510 }   # 08:30 UTC (8*60+30=510) → EU morning
-    @{ Day = 'Thursday';  Minutes = 810 }   # 13:30 UTC (13*60+30=810) → US morning
-)
-
-$isScheduledSlot = $scheduledSlots | Where-Object {
-    $_.Day -eq $utcDay -and
-    $utcTotalMinutes -ge $_.Minutes -and
-    $utcTotalMinutes -le ($_.Minutes + $graceMinutes)
+if ($forceRun -eq 'true') {
+    Write-Host "forceRun=true → Schedule guard BYPASSED. Running immediately."
 }
+else {
+    $utcDay = $currentUTCtime.DayOfWeek
+    $utcTotalMinutes = $currentUTCtime.Hour * 60 + $currentUTCtime.Minute
+    $graceMinutes = 15  # Allow up to 15 minutes late from cold start
 
-if (-not $isScheduledSlot) {
-    Write-Host "Skipping: Not a scheduled posting slot ($utcDay $($currentUTCtime.ToString('HH:mm')) UTC). Active slots: Wed 08:30, Thu 13:30 UTC (±${graceMinutes}min grace)."
-    return
+    $scheduledSlots = @(
+        @{ Day = 'Wednesday'; Minutes = 510 }   # 08:30 UTC (8*60+30=510) → EU morning
+        @{ Day = 'Thursday';  Minutes = 810 }   # 13:30 UTC (13*60+30=810) → US morning
+    )
+
+    $isScheduledSlot = $scheduledSlots | Where-Object {
+        $_.Day -eq $utcDay -and
+        $utcTotalMinutes -ge $_.Minutes -and
+        $utcTotalMinutes -le ($_.Minutes + $graceMinutes)
+    }
+
+    if (-not $isScheduledSlot) {
+        Write-Host "Skipping: Not a scheduled posting slot ($utcDay $($currentUTCtime.ToString('HH:mm')) UTC). Active slots: Wed 08:30, Thu 13:30 UTC (±${graceMinutes}min grace)."
+        return
+    }
+
+    Write-Host "Active posting slot: $utcDay $($currentUTCtime.ToString('HH:mm')) UTC"
 }
-
-Write-Host "Active posting slot: $utcDay $($currentUTCtime.ToString('HH:mm')) UTC"
 
 # ============================================================================
 # HELPER FUNCTIONS

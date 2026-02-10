@@ -420,3 +420,12 @@ FodyWeavers.xsd
 # Azure Functions
 local.settings.json
 Modules/
+
+# Azure Functions Core Tools / azd
+.azure/
+
+# Azurite local storage emulator
+__azurite_*
+__blobstorage__/
+__queuestorage__/
+__tablestorage__/
