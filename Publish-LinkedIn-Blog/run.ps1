@@ -151,7 +151,7 @@ function Send-LinkedInPost {
 
     $response = Invoke-RestMethod -Uri $apiUrl -Method Post -Body $jsonBody -ContentType 'application/json' -Headers @{
         'Authorization'             = "Bearer $AccessToken"
-        'LinkedIn-Version'          = '202501'
+        'LinkedIn-Version'          = '202602'
         'X-Restli-Protocol-Version' = '2.0.0'
     }
 
