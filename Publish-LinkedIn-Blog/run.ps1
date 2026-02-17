@@ -54,6 +54,53 @@ else {
 # Loaded automatically via profile.ps1 on cold start.
 # Tracker table: 'blogtracker' | Partition: 'Posted-LinkedIn'
 
+#region ConvertTo-UnicodeBold - Convert text to Unicode bold for LinkedIn posts
+function ConvertTo-UnicodeBold {
+    <#
+    .SYNOPSIS
+        Converts ASCII text to Unicode Mathematical Sans-Serif Bold characters.
+
+    .DESCRIPTION
+        LinkedIn's API ("little text format") does not support markdown formatting
+        (e.g. **bold**) in post commentary — those characters render literally.
+        This function maps ASCII letters and digits to their Unicode Mathematical
+        Sans-Serif Bold equivalents, which display as bold on LinkedIn and most
+        social media platforms. Non-ASCII characters (spaces, punctuation, emojis)
+        are passed through unchanged.
+
+    .PARAMETER Text
+        The plain text string to convert to bold Unicode characters.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$Text
+    )
+
+    $result = [System.Text.StringBuilder]::new()
+    foreach ($char in $Text.ToCharArray()) {
+        $code = [int]$char
+        if ($code -ge 65 -and $code -le 90) {
+            # Uppercase A-Z → U+1D5D4..U+1D5ED (Sans-Serif Bold)
+            $null = $result.Append([char]::ConvertFromUtf32(0x1D5D4 + ($code - 65)))
+        }
+        elseif ($code -ge 97 -and $code -le 122) {
+            # Lowercase a-z → U+1D5EE..U+1D607 (Sans-Serif Bold)
+            $null = $result.Append([char]::ConvertFromUtf32(0x1D5EE + ($code - 97)))
+        }
+        elseif ($code -ge 48 -and $code -le 57) {
+            # Digits 0-9 → U+1D7EC..U+1D7F5 (Sans-Serif Bold)
+            $null = $result.Append([char]::ConvertFromUtf32(0x1D7EC + ($code - 48)))
+        }
+        else {
+            # Pass through all other characters unchanged (spaces, punctuation, emojis)
+            $null = $result.Append($char)
+        }
+    }
+    return $result.ToString()
+}
+#endregion
+
 #region Send-LinkedInPost - Post to LinkedIn using REST API with OAuth 2.0
 function Send-LinkedInPost {
     <#
@@ -199,79 +246,79 @@ try {
 
     # 3. Compose LinkedIn post (max 3000 chars — much more room than X!)
     # Uses 5 rotating fun commentary templates to keep posts fresh and engaging.
+    # Note: LinkedIn API ("little text format") does NOT support markdown bold/italic.
+    # We use Unicode Sans-Serif Bold characters via ConvertTo-UnicodeBold instead.
     $publishedDate = ([DateTime]$blogToPost.published_at).ToString('dd/MM/yyyy')
     $blogDescription = if ($blogToPost.description) { $blogToPost.description } else { '' }
 
+    # Pre-compute Unicode bold labels (LinkedIn API does not render markdown formatting)
+    $boldTitle = ConvertTo-UnicodeBold 'Title:'
+    $boldDescription = ConvertTo-UnicodeBold 'Description:'
+    $boldReadHere = ConvertTo-UnicodeBold 'Read it here:'
+    $boldDate = ConvertTo-UnicodeBold $publishedDate
+
+    # Build the blog details section once (conditionally includes description if present)
+    $blogDetails = "📝 $boldTitle `"$($blogToPost.title)`""
+    if ($blogDescription) {
+        $blogDetails += "`n📖 $boldDescription `"$blogDescription`""
+    }
+    $blogDetails += "`n`n🔗 $boldReadHere $($blogToPost.url)"
+
     $commentaryTemplates = @(
         @"
-🚀 **Welcome aboard the AI-powered time machine!**
+🚀 $(ConvertTo-UnicodeBold 'Welcome aboard the AI-powered time machine!')
 
-This week we're warping back to **$publishedDate** to revisit one of my popular blog posts from the archives. ⏳
+This week we're warping back to $boldDate to revisit one of my popular blog posts from the archives. ⏳
 
-📝 **Title:** `"$($blogToPost.title)`"
-$(if ($blogDescription) { "`n📖 **Description:** `"$blogDescription`"" })
-
-🔗 **Article URL:** $($blogToPost.url)
+$blogDetails
 
 $hashtags
 "@
         ,
         @"
-🎵 **Now playing on the DevOps Mixtape...**
+🎵 $(ConvertTo-UnicodeBold 'Now playing on the DevOps Mixtape...')
 
-A throwback track from **$publishedDate** that still slaps! 🔥 Hit play and check out this banger from the blog archives. 🎧
+A throwback track from $boldDate that still slaps! 🔥 Hit play and check out this banger from the blog archives. 🎧
 
-📝 **Title:** `"$($blogToPost.title)`"
-$(if ($blogDescription) { "`n📖 **Description:** `"$blogDescription`"" })
-
-🔗 **Article URL:** $($blogToPost.url)
+$blogDetails
 
 $hashtags
 "@
         ,
         @"
-📰 **BREAKING NEWS from the Dev Community!**
+📰 $(ConvertTo-UnicodeBold 'BREAKING NEWS from the Dev Community!')
 
-Our reporters have uncovered a blog post from **$publishedDate** that's still making waves today. 🌊 Read all about it! 👇
+Our reporters have uncovered a blog post from $boldDate that's still making waves today. 🌊 Read all about it! 👇
 
-📝 **Title:** `"$($blogToPost.title)`"
-$(if ($blogDescription) { "`n📖 **Description:** `"$blogDescription`"" })
-
-🔗 **Article URL:** $($blogToPost.url)
+$blogDetails
 
 $hashtags
 "@
         ,
         @"
-💎 **Today's treasure from the blog vault!**
+💎 $(ConvertTo-UnicodeBold "Today's treasure from the blog vault!")
 
-While digging through the archives, I unearthed this gem from **$publishedDate**. ⛏️ Dust it off and give it a read!
+While digging through the archives, I unearthed this gem from $boldDate. ⛏️ Dust it off and give it a read!
 
-📝 **Title:** `"$($blogToPost.title)`"
-$(if ($blogDescription) { "`n📖 **Description:** `"$blogDescription`"" })
-
-🔗 **Article URL:** $($blogToPost.url)
+$blogDetails
 
 $hashtags
 "@
         ,
         @"
-🤖 **BEEP BOOP!** Your friendly neighbourhood blog bot here!
+🤖 $(ConvertTo-UnicodeBold 'BEEP BOOP!') Your friendly neighbourhood blog bot here!
 
-My circuits have selected a post from **$publishedDate** for your reading pleasure. ⚡ Enjoy, humans! 👾
+My circuits have selected a post from $boldDate for your reading pleasure. ⚡ Enjoy, humans! 👾
 
-📝 **Title:** `"$($blogToPost.title)`"
-$(if ($blogDescription) { "`n📖 **Description:** `"$blogDescription`"" })
-
-🔗 **Article URL:** $($blogToPost.url)
+$blogDetails
 
 $hashtags
 "@
     )
 
-    # Pick a random template and clean up any blank lines from empty conditional fields
+    # Pick a random template and collapse any excessive blank lines (3+ consecutive → 2)
     $Commentary = $commentaryTemplates | Get-Random
-    $Commentary = ($Commentary -split "`n" | Where-Object { $_.Trim() -ne '' }) -join "`n"
+    $Commentary = [regex]::Replace($Commentary, '(\r?\n){3,}', "`n`n")
 
     $ArticleUrl = $blogToPost.url
     $ArticleTitle = $blogToPost.title
