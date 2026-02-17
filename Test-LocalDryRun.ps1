@@ -129,15 +129,90 @@ for ($i = 1; $i -le $SimulateRuns; $i++) {
             }
             'LinkedIn' {
                 # LinkedIn message: max 3000 chars + article preview
-                $Commentary = @"
-Check out my latest blog post!
+                # Uses the same 6 rotating commentary templates as the live function
+                $blogDescription = if ($blogData.description) { $blogData.description } else { '' }
+                $readingTime = if ($blogData.reading_time_minutes) { "$($blogData.reading_time_minutes) min read" } else { '' }
+                $reactions = if ($blogData.positive_reactions_count -gt 0) { "$($blogData.positive_reactions_count) reactions" } else { '' }
+
+                $commentaryTemplates = @(
+                    @"
+I wrote a blog on this topic and wanted to share it with the community!
 
 $($blogData.title)
 
-$hashtags
+$(if ($blogDescription) { "$blogDescription" })
+$(if ($readingTime) { "[$readingTime]" })
 
-#MicrosoftMVP #Azure #DevCommunity
+$hashtags #MicrosoftMVP #Azure #DevCommunity
 "@
+                    ,
+                    @"
+One of my favourite blog posts! Have you seen this one yet?
+
+$($blogData.title)
+
+$(if ($blogDescription) { "$blogDescription" })
+$(if ($readingTime) { "[$readingTime]" })
+
+If you find this useful, feel free to share it with your network!
+
+$hashtags #MicrosoftMVP #DevCommunity #TechCommunity
+"@
+                    ,
+                    @"
+Sharing some knowledge with the community today!
+
+$($blogData.title)
+
+$(if ($blogDescription) { "$blogDescription" })
+$(if ($readingTime) { "[$readingTime]" })
+
+I'd love to hear your thoughts - drop a comment below!
+
+$hashtags #MicrosoftMVP #Azure #DeveloperProductivity
+"@
+                    ,
+                    @"
+This is a topic I'm really passionate about, and I put together a detailed blog post on it.
+
+$($blogData.title)
+
+$(if ($blogDescription) { "$blogDescription" })
+$(if ($readingTime) { "[$readingTime]" })
+
+Hope this helps someone out there - happy learning!
+
+$hashtags #MicrosoftMVP #DevCommunity #MVPBuzz
+"@
+                    ,
+                    @"
+If you're looking to level up your skills, check out this blog post I wrote!
+
+$($blogData.title)
+
+$(if ($blogDescription) { "$blogDescription" })
+$(if ($readingTime) { "[$readingTime]" })
+
+Let me know what you think in the comments.
+
+$hashtags #MicrosoftMVP #Azure #TechCommunity
+"@
+                    ,
+                    @"
+I recently shared this blog, and the response has been amazing! If you missed it, here it is:
+
+$($blogData.title)
+
+$(if ($blogDescription) { "$blogDescription" })
+$(if ($readingTime -and $reactions) { "[$readingTime | $reactions]" } elseif ($readingTime) { "[$readingTime]" })
+
+$hashtags #MicrosoftMVP #DevCommunity #LearnInPublic
+"@
+                )
+
+                $Commentary = $commentaryTemplates | Get-Random
+                $Commentary = ($Commentary -split "`n" | Where-Object { $_.Trim() -ne '' }) -join "`n"
+
                 $charCount = $Commentary.Length
                 $color = if ($charCount -le 3000) { 'Green' } else { 'Red' }
 
