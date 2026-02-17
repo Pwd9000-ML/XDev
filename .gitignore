@@ -419,7 +419,11 @@ FodyWeavers.xsd
 
 # Azure Functions
 local.settings.json
-Modules/
+
+# Azure Functions - managed dependencies (exclude auto-downloaded modules, keep custom ones)
+Modules/Az*
+Modules/AzTable*
+!Modules/BlogHelper/
 
 # Azure Functions Core Tools / azd
 .azure/
