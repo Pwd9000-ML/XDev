@@ -204,56 +204,66 @@ try {
 
     $commentaryTemplates = @(
         @"
-Welcome aboard the AI-powered time machine! This week we're warping back to $publishedDate to revisit one of my popular blog posts from the archives.
+🚀 **Welcome aboard the AI-powered time machine!**
 
-Title: `"$($blogToPost.title)`"
-$(if ($blogDescription) { "`nDescription: `"$blogDescription`"" })
+This week we're warping back to **$publishedDate** to revisit one of my popular blog posts from the archives. ⏳
 
-Article URL: $($blogToPost.url)
+📝 **Title:** `"$($blogToPost.title)`"
+$(if ($blogDescription) { "`n📖 **Description:** `"$blogDescription`"" })
 
-$hashtags
-"@
-        ,
-        @"
-Now playing on the DevOps Mixtape... A throwback track from $publishedDate that still slaps! Hit play and check out this banger from the blog archives.
-
-Title: `"$($blogToPost.title)`"
-$(if ($blogDescription) { "`nDescription: `"$blogDescription`"" })
-
-Article URL: $($blogToPost.url)
+🔗 **Article URL:** $($blogToPost.url)
 
 $hashtags
 "@
         ,
         @"
-BREAKING NEWS from the Dev Community! Our reporters have uncovered a blog post from $publishedDate that's still making waves today. Read all about it!
+🎵 **Now playing on the DevOps Mixtape...**
 
-Title: `"$($blogToPost.title)`"
-$(if ($blogDescription) { "`nDescription: `"$blogDescription`"" })
+A throwback track from **$publishedDate** that still slaps! 🔥 Hit play and check out this banger from the blog archives. 🎧
 
-Article URL: $($blogToPost.url)
+📝 **Title:** `"$($blogToPost.title)`"
+$(if ($blogDescription) { "`n📖 **Description:** `"$blogDescription`"" })
 
-$hashtags
-"@
-        ,
-        @"
-Today's treasure from the blog vault! While digging through the archives, I unearthed this gem from $publishedDate. Dust it off and give it a read!
-
-Title: `"$($blogToPost.title)`"
-$(if ($blogDescription) { "`nDescription: `"$blogDescription`"" })
-
-Article URL: $($blogToPost.url)
+🔗 **Article URL:** $($blogToPost.url)
 
 $hashtags
 "@
         ,
         @"
-BEEP BOOP! Your friendly neighbourhood blog bot here! My circuits have selected a post from $publishedDate for your reading pleasure. Enjoy, humans!
+📰 **BREAKING NEWS from the Dev Community!**
 
-Title: `"$($blogToPost.title)`"
-$(if ($blogDescription) { "`nDescription: `"$blogDescription`"" })
+Our reporters have uncovered a blog post from **$publishedDate** that's still making waves today. 🌊 Read all about it! 👇
 
-Article URL: $($blogToPost.url)
+📝 **Title:** `"$($blogToPost.title)`"
+$(if ($blogDescription) { "`n📖 **Description:** `"$blogDescription`"" })
+
+🔗 **Article URL:** $($blogToPost.url)
+
+$hashtags
+"@
+        ,
+        @"
+💎 **Today's treasure from the blog vault!**
+
+While digging through the archives, I unearthed this gem from **$publishedDate**. ⛏️ Dust it off and give it a read!
+
+📝 **Title:** `"$($blogToPost.title)`"
+$(if ($blogDescription) { "`n📖 **Description:** `"$blogDescription`"" })
+
+🔗 **Article URL:** $($blogToPost.url)
+
+$hashtags
+"@
+        ,
+        @"
+🤖 **BEEP BOOP!** Your friendly neighbourhood blog bot here!
+
+My circuits have selected a post from **$publishedDate** for your reading pleasure. ⚡ Enjoy, humans! 👾
+
+📝 **Title:** `"$($blogToPost.title)`"
+$(if ($blogDescription) { "`n📖 **Description:** `"$blogDescription`"" })
+
+🔗 **Article URL:** $($blogToPost.url)
 
 $hashtags
 "@
