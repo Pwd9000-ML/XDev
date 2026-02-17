@@ -117,11 +117,15 @@ for ($i = 1; $i -le $SimulateRuns; $i++) {
                     $truncated = $true
                 }
 
-                $charCount = $Message.Length
                 $color = if ($weightedLength -le 280) { 'Green' } else { 'Red' }
+                $truncLabel = if ($truncated) { ' [TRUNCATED]' } else { '' }
 
-                Write-Host "  [X] (weighted: $weightedLength/280, actual: $charCount chars)$(if($truncated){' [TRUNCATED]'}):" -ForegroundColor $color
-                Write-Host "  $Message" -ForegroundColor White
+                Write-Host ""
+                Write-Host "  ┌─── X Post ─── (weighted: $weightedLength/280)$truncLabel" -ForegroundColor $color
+                Write-Host "  │" -ForegroundColor DarkGray
+                Write-Host "  │  $Message" -ForegroundColor White
+                Write-Host "  │" -ForegroundColor DarkGray
+                Write-Host "  └────────────────────────────────────────────" -ForegroundColor DarkGray
             }
             'LinkedIn' {
                 # LinkedIn message: max 3000 chars + article preview
@@ -139,9 +143,20 @@ $hashtags #MicrosoftMVP #Azure #DevCommunity
                 $charCount = $Commentary.Length
                 $color = if ($charCount -le 3000) { 'Green' } else { 'Red' }
 
-                Write-Host "  [LinkedIn] ($charCount/3000 chars):" -ForegroundColor $color
-                Write-Host "  Commentary: $($Commentary.Replace("`n", ' | '))" -ForegroundColor White
-                Write-Host "  Article: $($blogData.title) → $($blogData.url)" -ForegroundColor DarkGray
+                Write-Host ""
+                Write-Host "  ┌─── LinkedIn Post ─── ($charCount/3000 chars)" -ForegroundColor $color
+                Write-Host "  │" -ForegroundColor DarkGray
+                $Commentary -split "`n" | ForEach-Object {
+                    Write-Host "  │  $_" -ForegroundColor White
+                }
+                Write-Host "  │" -ForegroundColor DarkGray
+                Write-Host "  │  ┌──────────────────────────────────────" -ForegroundColor DarkCyan
+                Write-Host "  │  │  Article Preview" -ForegroundColor DarkCyan
+                Write-Host "  │  │  $($blogData.title)" -ForegroundColor Cyan
+                Write-Host "  │  │  $($blogData.url)" -ForegroundColor DarkGray
+                Write-Host "  │  └──────────────────────────────────────" -ForegroundColor DarkCyan
+                Write-Host "  │" -ForegroundColor DarkGray
+                Write-Host "  └────────────────────────────────────────────" -ForegroundColor DarkGray
             }
         }
     }
