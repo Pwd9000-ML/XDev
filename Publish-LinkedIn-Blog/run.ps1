@@ -192,13 +192,8 @@ try {
     # 1. Select a random blog post (with rotation tracking for LinkedIn)
     [PSCustomObject]$blogToPost = Get-Blog -URI $URI -resourceGroupName $resourceGroupName -storageAccountName $storageAccountName -platform 'LinkedIn' -excludeIds $excludeIds -excludeYears $excludeYears
 
-    # 2. Build hashtags from blog tags
-    $hashtags = ''
-    $blogToPost.tags.Split(', ') | ForEach-Object {
-        $tag = $_
-        $hashtags += (' #' + $tag)
-    }
-    $hashtags = $hashtags.Trim()
+    # 2. Build hashtags from blog tags (use -split for proper delimiter; remove hyphens which break hashtags)
+    $hashtags = (($blogToPost.tags -split ',\s*') | Where-Object { $_ -ne '' } | ForEach-Object { '#' + ($_ -replace '-', '') }) -join ' '
 
     # 3. Compose LinkedIn post (max 3000 chars — much more room than X!)
     # Uses rotating commentary templates to keep posts fresh and avoid repetition.
@@ -206,97 +201,20 @@ try {
     $blogDescription = if ($blogToPost.description) { $blogToPost.description } else { '' }
     $readingTime = if ($blogToPost.reading_time_minutes) { "$($blogToPost.reading_time_minutes) min read" } else { '' }
     $reactions = if ($blogToPost.positive_reactions_count -gt 0) { "$($blogToPost.positive_reactions_count) reactions" } else { '' }
+$publishedDate = ([DateTime]$blogToPost.published_at).ToString('dd/MM/yyyy')
 
-    $commentaryTemplates = @(
-        @"
-I wrote a blog on this topic and wanted to share it with the community!
+    $Commentary = @"
+Check out my blog post published on $publishedDate
 
 $($blogToPost.title)
-
-$(if ($blogDescription) { "$blogDescription" })
-$(if ($readingTime) { "[$readingTime]" })
+Article URL: $($blogToPost.url)
 
 $hashtags #MicrosoftMVP #Azure #DevCommunity
 "@
-        ,
-        @"
-One of my favourite blog posts! Have you seen this one yet?
-
-$($blogToPost.title)
-
-$(if ($blogDescription) { "$blogDescription" })
-$(if ($readingTime) { "[$readingTime]" })
-
-If you find this useful, feel free to share it with your network!
-
-$hashtags #MicrosoftMVP #DevCommunity #TechCommunity
-"@
-        ,
-        @"
-Sharing some knowledge with the community today!
-
-$($blogToPost.title)
-
-$(if ($blogDescription) { "$blogDescription" })
-$(if ($readingTime) { "[$readingTime]" })
-
-I'd love to hear your thoughts - drop a comment below!
-
-$hashtags #MicrosoftMVP #Azure #DeveloperProductivity
-"@
-        ,
-        @"
-This is a topic I'm really passionate about, and I put together a detailed blog post on it.
-
-$($blogToPost.title)
-
-$(if ($blogDescription) { "$blogDescription" })
-$(if ($readingTime) { "[$readingTime]" })
-
-Hope this helps someone out there - happy learning!
-
-$hashtags #MicrosoftMVP #DevCommunity #MVPBuzz
-"@
-        ,
-        @"
-If you're looking to level up your skills, check out this blog post I wrote!
-
-$($blogToPost.title)
-
-$(if ($blogDescription) { "$blogDescription" })
-$(if ($readingTime) { "[$readingTime]" })
-
-Let me know what you think in the comments.
-
-$hashtags #MicrosoftMVP #Azure #TechCommunity
-"@
-        ,
-        @"
-I recently shared this blog, and the response has been amazing! If you missed it, here it is:
-
-$($blogToPost.title)
-
-$(if ($blogDescription) { "$blogDescription" })
-$(if ($readingTime -and $reactions) { "[$readingTime | $reactions]" } elseif ($readingTime) { "[$readingTime]" })
-
-$hashtags #MicrosoftMVP #DevCommunity #LearnInPublic
-"@
-    )
-
-    # Pick a random template
-    $Commentary = $commentaryTemplates | Get-Random
-
-    # Clean up any blank lines from empty conditional fields
-    $Commentary = ($Commentary -split "`n" | Where-Object { $_.Trim() -ne '' }) -join "`n"
 
     $ArticleUrl = $blogToPost.url
     $ArticleTitle = $blogToPost.title
-    $ArticleDescription = if ($blogDescription) { $blogDescription } else { "Read the full article on DEV.to" }
-
-    Write-Host "Posting to LinkedIn:"
-    Write-Host "Commentary: $Commentary"
-    Write-Host "Article: $ArticleTitle → $ArticleUrl"
-    Write-Host "Character count: $($Commentary.Length) / 3000"
+    $ArticleDescription = if ($blogToPost.description) { $blogToPost.d 3000"
 
     # 4. Post to LinkedIn (skip if dry-run)
     if ($dryRun -eq 'true') {

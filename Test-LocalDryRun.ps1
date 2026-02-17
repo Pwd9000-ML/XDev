@@ -87,16 +87,12 @@ for ($i = 1; $i -le $SimulateRuns; $i++) {
     $blogDataId = $allIds[$blogItem]
     $blogData = $blogPosts | Where-Object { $_.id -eq $blogDataId }
 
-    # Build hashtags
-    $hashtags = ''
-    $blogData.tags.Split(', ') | ForEach-Object {
-        $hashtags += (' #' + $_)
-    }
-    $hashtags = $hashtags.Trim()
+    # Build hashtags (use -split for proper delimiter; remove hyphens which break hashtags)
+    $hashtags = (($blogData.tags -split ',\s*') | Where-Object { $_ -ne '' } | ForEach-Object { '#' + ($_ -replace '-', '') }) -join ' '
 
     Write-Host "  --- Run $i ---" -ForegroundColor Cyan
     Write-Host "  Blog: $($blogData.title)" -ForegroundColor White
-    Write-Host "  Published: $($blogData.published_at)" -ForegroundColor DarkGray
+    Write-Host "  Published: $(([DateTime]$blogData.published_at).ToString('dd/MM/yyyy'))" -ForegroundColor DarkGray
     Write-Host "  URL: $($blogData.url)" -ForegroundColor DarkGray
     Write-Host "  Tags: $($blogData.tags)" -ForegroundColor DarkGray
 
@@ -129,89 +125,16 @@ for ($i = 1; $i -le $SimulateRuns; $i++) {
             }
             'LinkedIn' {
                 # LinkedIn message: max 3000 chars + article preview
-                # Uses the same 6 rotating commentary templates as the live function
-                $blogDescription = if ($blogData.description) { $blogData.description } else { '' }
-                $readingTime = if ($blogData.reading_time_minutes) { "$($blogData.reading_time_minutes) min read" } else { '' }
-                $reactions = if ($blogData.positive_reactions_count -gt 0) { "$($blogData.positive_reactions_count) reactions" } else { '' }
+                $publishedDate = ([DateTime]$blogData.published_at).ToString('dd/MM/yyyy')
 
-                $commentaryTemplates = @(
-                    @"
-I wrote a blog on this topic and wanted to share it with the community!
+                $Commentary = @"
+Check out my blog post published on $publishedDate
 
 $($blogData.title)
-
-$(if ($blogDescription) { "$blogDescription" })
-$(if ($readingTime) { "[$readingTime]" })
+Article URL: $($blogData.url)
 
 $hashtags #MicrosoftMVP #Azure #DevCommunity
 "@
-                    ,
-                    @"
-One of my favourite blog posts! Have you seen this one yet?
-
-$($blogData.title)
-
-$(if ($blogDescription) { "$blogDescription" })
-$(if ($readingTime) { "[$readingTime]" })
-
-If you find this useful, feel free to share it with your network!
-
-$hashtags #MicrosoftMVP #DevCommunity #TechCommunity
-"@
-                    ,
-                    @"
-Sharing some knowledge with the community today!
-
-$($blogData.title)
-
-$(if ($blogDescription) { "$blogDescription" })
-$(if ($readingTime) { "[$readingTime]" })
-
-I'd love to hear your thoughts - drop a comment below!
-
-$hashtags #MicrosoftMVP #Azure #DeveloperProductivity
-"@
-                    ,
-                    @"
-This is a topic I'm really passionate about, and I put together a detailed blog post on it.
-
-$($blogData.title)
-
-$(if ($blogDescription) { "$blogDescription" })
-$(if ($readingTime) { "[$readingTime]" })
-
-Hope this helps someone out there - happy learning!
-
-$hashtags #MicrosoftMVP #DevCommunity #MVPBuzz
-"@
-                    ,
-                    @"
-If you're looking to level up your skills, check out this blog post I wrote!
-
-$($blogData.title)
-
-$(if ($blogDescription) { "$blogDescription" })
-$(if ($readingTime) { "[$readingTime]" })
-
-Let me know what you think in the comments.
-
-$hashtags #MicrosoftMVP #Azure #TechCommunity
-"@
-                    ,
-                    @"
-I recently shared this blog, and the response has been amazing! If you missed it, here it is:
-
-$($blogData.title)
-
-$(if ($blogDescription) { "$blogDescription" })
-$(if ($readingTime -and $reactions) { "[$readingTime | $reactions]" } elseif ($readingTime) { "[$readingTime]" })
-
-$hashtags #MicrosoftMVP #DevCommunity #LearnInPublic
-"@
-                )
-
-                $Commentary = $commentaryTemplates | Get-Random
-                $Commentary = ($Commentary -split "`n" | Where-Object { $_.Trim() -ne '' }) -join "`n"
 
                 $charCount = $Commentary.Length
                 $color = if ($charCount -le 3000) { 'Green' } else { 'Red' }

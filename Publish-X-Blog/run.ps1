@@ -199,13 +199,8 @@ try {
     # 1. Select a random blog post (with rotation)
     [PSCustomObject]$blogToPost = Get-Blog -URI $URI -resourceGroupName $resourceGroupName -storageAccountName $storageAccountName -platform 'X' -excludeIds $excludeIds -excludeYears $excludeYears
 
-    # 2. Build hashtags from blog tags
-    $hashtags = ''
-    $blogToPost.tags.Split(', ') | ForEach-Object {
-        $tag = $_
-        $hashtags += (' #' + $tag)
-    }
-    $hashtags = $hashtags.Trim()
+    # 2. Build hashtags from blog tags (use -split for proper delimiter; remove hyphens which break hashtags)
+    $hashtags = (($blogToPost.tags -split ',\s*') | Where-Object { $_ -ne '' } | ForEach-Object { '#' + ($_ -replace '-', '') }) -join ' '
 
     # 3. Compose the post message (max 280 chars for X)
     # X wraps all URLs via t.co, which always counts as 23 characters
