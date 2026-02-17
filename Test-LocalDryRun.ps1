@@ -261,6 +261,6 @@ Write-Host "  3. Check logs in Azure Portal" -ForegroundColor White
 Write-Host "  4. Set dryRun='false' and test live" -ForegroundColor White
 Write-Host "" -ForegroundColor White
 Write-Host " Platform schedules:" -ForegroundColor Cyan
-Write-Host "  X:        Wed 08:30 UTC, Thu 13:30 UTC" -ForegroundColor White
-Write-Host "  LinkedIn: Mon 09:00 UTC, Fri 14:00 UTC" -ForegroundColor White
+Write-Host "  X:        Wed 07:30 UTC (7:30 AM GMT), Thu 13:30 UTC" -ForegroundColor White
+Write-Host "  LinkedIn: Mon 07:30 UTC (7:30 AM GMT / 8:30 AM BST)" -ForegroundColor White
 Write-Host "============================================" -ForegroundColor Cyan

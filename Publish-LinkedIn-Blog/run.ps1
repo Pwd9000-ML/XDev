@@ -10,11 +10,9 @@ if ($Timer.IsPastDue) {
 }
 
 # ============================================================================
-# SCHEDULE GUARD - Only post on the intended day/time slots:
-#   - Monday  09:00 UTC (EU morning peak)
-#   - Friday  14:00 UTC (US morning peak / EU afternoon)
-# The CRON fires at 09:00 and 14:00 on both Mon & Fri (4 times).
-# This guard skips the 2 unintended slots (Mon 14:00 and Fri 09:00).
+# SCHEDULE GUARD - Only post on the intended day/time slot:
+#   - Monday  07:30 UTC (UK morning 7:30 AM GMT / 8:30 AM BST)
+# The CRON fires at 07:30 on Monday only, so this guard is a safety net.
 # Uses a 15-minute grace window to account for cold-start delays.
 #
 # Set App Setting 'forceRun' to 'true' to bypass the schedule guard
@@ -31,8 +29,7 @@ else {
     $graceMinutes = 15  # Allow up to 15 minutes late from cold start
 
     $scheduledSlots = @(
-        @{ Day = 'Monday'; Minutes = 540 }   # 09:00 UTC (9*60=540) → EU morning
-        @{ Day = 'Friday'; Minutes = 840 }   # 14:00 UTC (14*60=840) → US morning
+        @{ Day = 'Monday'; Minutes = 450 }   # 07:30 UTC (7*60+30=450) → UK morning
     )
 
     $isScheduledSlot = $scheduledSlots | Where-Object {
@@ -42,7 +39,7 @@ else {
     }
 
     if (-not $isScheduledSlot) {
-        Write-Host "Skipping: Not a scheduled posting slot ($utcDay $($currentUTCtime.ToString('HH:mm')) UTC). Active slots: Mon 09:00, Fri 14:00 UTC (±${graceMinutes}min grace)."
+        Write-Host "Skipping: Not a scheduled posting slot ($utcDay $($currentUTCtime.ToString('HH:mm')) UTC). Active slot: Mon 07:30 UTC (±${graceMinutes}min grace)."
         return
     }
 
