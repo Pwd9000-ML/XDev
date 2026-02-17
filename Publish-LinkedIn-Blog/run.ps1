@@ -265,7 +265,12 @@ $hashtags
 
     $ArticleUrl = $blogToPost.url
     $ArticleTitle = $blogToPost.title
-    $ArticleDescription = if ($blogToPost.description) { $blogToPost.d 3000"
+    $ArticleDescription = if ($blogToPost.description) { $blogToPost.description } else { "Read the full article on DEV.to" }
+
+    Write-Host "Posting to LinkedIn:"
+    Write-Host "Commentary: $Commentary"
+    Write-Host "Article: $ArticleTitle → $ArticleUrl"
+    Write-Host "Character count: $($Commentary.Length) / 3000"
 
     # 4. Post to LinkedIn (skip if dry-run)
     if ($dryRun -eq 'true') {
