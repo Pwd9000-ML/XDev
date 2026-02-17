@@ -53,142 +53,9 @@ else {
 # HELPER FUNCTIONS
 # ============================================================================
 
-#region Get-Blog - Select a random blog post with rotation tracking via Azure Table Storage
-function Get-Blog {
-    [CmdletBinding()]
-    Param (
-        [Parameter(Mandatory)]
-        [string]$URI,
-        [Parameter(Mandatory)]
-        [string]$resourceGroupName,
-        [Parameter(Mandatory)]
-        [string]$storageAccountName,
-        [Parameter(Mandatory = $false)]
-        [string]$tableName = 'blogs',
-        [Parameter(Mandatory = $false)]
-        [string]$tablePartition = 'Blog-ID',
-        [Parameter(Mandatory = $false)]
-        [string]$excludeIds = $null,
-        [Parameter(Mandatory = $false)]
-        [string]$excludeYears = $null
-    )
-
-    # Excluded posts (Not wanted in posts)
-    if ($excludeIds) {
-        $excludeBlogIds = $excludeIds.Split(', ')
-    }
-    else {
-        $excludeBlogIds = $null
-    }
-
-    # Connect to Az Table Storage to check tracking (Already posted)
-    try {
-        $storageAccount = Get-AzStorageAccount -ResourceGroupName $resourceGroupName -Name $storageAccountName
-        $storageContext = $storageAccount.Context
-        $cloudTable = (Get-AzStorageTable -Name $tableName -Context $storageContext).CloudTable
-        $records = Get-AzTableRow -table $cloudTable -PartitionKey $tablePartition
-    }
-    catch {
-        Write-Error $_.Exception.Message
-    }
-
-    if ($records) {
-        $blogPreCalledIds = $records | Select-Object -ExpandProperty RowKey
-    }
-    else {
-        $blogPreCalledIds = $null
-    }
-
-    # Add exclusions if any (by blog ID, comma separated)
-    foreach ($id in $excludeBlogIds) {
-        if ($blogPreCalledIds -notcontains $id) {
-            Write-Host "$id not in tracker, adding to tracker to exclude"
-            $null = Add-AzTableRow -table $cloudTable -partitionKey $tablePartition -rowKey $id
-            $blogPreCalledIds += $id
-        }
-        else {
-            Write-Host "$id in tracker, and will be excluded"
-        }
-    }
-
-    # Call DEV.to API to get all posts
-    $blogPosts = Invoke-RestMethod -Uri $URI -Method GET
-
-    # Exclude entire years if specified (e.g. "2023, 2024")
-    if ($excludeYears) {
-        $yearsToExclude = $excludeYears.Split(', ') | ForEach-Object { $_.Trim() }
-        $beforeCount = $blogPosts.Count
-        $blogPosts = $blogPosts | Where-Object {
-            $publishedYear = ([DateTime]$_.published_at).Year.ToString()
-            $publishedYear -notin $yearsToExclude
-        }
-        $excludedCount = $beforeCount - $blogPosts.Count
-        Write-Host "Excluded $excludedCount blogs from year(s): $excludeYears"
-    }
-
-    if ($null -ne $blogPreCalledIds) {
-        $availableBlogIds = Compare-Object -ReferenceObject ($blogPosts.id) -DifferenceObject $blogPreCalledIds -PassThru
-    }
-    else {
-        $availableBlogIds = $blogPosts.id
-    }
-
-    $blogCount = $availableBlogIds.Count
-    Write-Output "$blogCount blogs left to post on X"
-
-    # If no blogs are available (all excluded by ID/year filters), reset tracker and retry
-    if ($blogCount -eq 0) {
-        Write-Warning "No available blogs to post. All blogs may be excluded or already tracked. Resetting tracker and retrying."
-        if ($records) {
-            try {
-                $records | Remove-AzTableRow -table $cloudTable -Verbose
-                $records = $null
-            }
-            catch {
-                Write-Error $_.Exception.Message
-            }
-        }
-
-        # Recalculate available blogs after reset
-        $availableBlogIds = $blogPosts.id
-        $blogCount = $availableBlogIds.Count
-
-        if ($blogCount -eq 0) {
-            Write-Error "No blogs available even after tracker reset. Check excludeBlogIds/excludeBlogYears filters or DEV.to API."
-            return $null
-        }
-        Write-Host "Tracker reset complete. $blogCount blogs now available."
-    }
-
-    # Reset rotation when only 1 blog left
-    $Reset = ($blogCount -eq 1)
-
-    if ($Reset) {
-        try {
-            $records | Remove-AzTableRow -table $cloudTable -Verbose
-            $records = $null
-        }
-        catch {
-            Write-Error $_.Exception.Message
-        }
-    }
-
-    # Select a random blog from available entries
-    $blogItem = Get-Random -Maximum $blogCount
-    $blogDataId = $availableBlogIds[$blogItem]
-    $blogData = $blogPosts | Where-Object { $_.id -eq $blogDataId }
-
-    # Track selection in table storage
-    try {
-        $null = Add-AzTableRow -table $cloudTable -partitionKey $tablePartition -rowKey $blogDataId
-    }
-    catch {
-        Write-Error $_.Exception.Message
-    }
-
-    return $blogData
-}
-#endregion
+# Get-Blog is provided by the shared BlogHelper module (Modules/BlogHelper/BlogHelper.psm1)
+# Loaded automatically via profile.ps1 on cold start.
+# Tracker table: 'blogtracker' | Partition: 'Posted-X'
 
 #region Send-XPost - Post to X (formerly Twitter) using API v2 with OAuth 1.0a
 function Send-XPost {
@@ -330,7 +197,7 @@ $statusGood = $true
 
 try {
     # 1. Select a random blog post (with rotation)
-    [PSCustomObject]$blogToPost = Get-Blog -URI $URI -resourceGroupName $resourceGroupName -storageAccountName $storageAccountName -excludeIds $excludeIds -excludeYears $excludeYears
+    [PSCustomObject]$blogToPost = Get-Blog -URI $URI -resourceGroupName $resourceGroupName -storageAccountName $storageAccountName -platform 'X' -excludeIds $excludeIds -excludeYears $excludeYears
 
     # 2. Build hashtags from blog tags
     $hashtags = ''
@@ -394,7 +261,7 @@ catch {
         $storageAccount = Get-AzStorageAccount -ResourceGroupName $resourceGroupName -Name $storageAccountName
         $storageContext = $storageAccount.Context
         $cloudTable = (Get-AzStorageTable -Name 'failed' -Context $storageContext).CloudTable
-        $null = Add-AzTableRow -table $cloudTable -partitionKey 'Blog-Fail' -rowKey "$statusMessage -- [$Message]"
+        $null = Add-AzTableRow -table $cloudTable -partitionKey 'Fail-X' -rowKey "$statusMessage -- [$Message]"
     }
     catch {
         Write-Error "Failed to log error to table storage: $($_.Exception.Message)"

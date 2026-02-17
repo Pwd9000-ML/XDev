@@ -1,29 +1,36 @@
 <#
 .SYNOPSIS
-    Local test script for the Publish-X-Blog function.
+    Local test script for the Publish-*-Blog functions.
     Tests DEV.to API, blog selection, message composition, and character limits
-    WITHOUT needing Azure Table Storage or X API credits.
+    WITHOUT needing Azure Table Storage or any platform API credentials.
 
 .DESCRIPTION
     Run this locally to verify:
     1. DEV.to API returns your blog posts
     2. Year exclusion filtering works
-    3. Message composition fits within 280 chars
+    3. Message composition fits within platform character limits
     4. Blog rotation picks different posts each run
 
+    Supports testing message formats for: X (280 chars), LinkedIn (3000 chars)
+
 .NOTES
-    No Azure or X credentials needed for this test.
+    No Azure or platform credentials needed for this test.
     Run from PowerShell: .\Test-LocalDryRun.ps1
+    Test LinkedIn format: .\Test-LocalDryRun.ps1 -Platform LinkedIn
+    Test all platforms:   .\Test-LocalDryRun.ps1 -Platform All
 #>
 
 param(
     [string]$Username = 'pwd9000',
     [string]$ExcludeYears = '',        # e.g. '2024' or '2023, 2024'
-    [int]$SimulateRuns = 5              # How many random selections to simulate
+    [int]$SimulateRuns = 5,            # How many random selections to simulate
+    [ValidateSet('X', 'LinkedIn', 'All')]
+    [string]$Platform = 'All'          # Which platform message format to test
 )
 
 Write-Host "============================================" -ForegroundColor Cyan
-Write-Host " Publish-X-Blog - Local Dry Run Test" -ForegroundColor Cyan
+Write-Host " Publish-Blog - Local Dry Run Test" -ForegroundColor Cyan
+Write-Host " Platform(s): $Platform" -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -71,6 +78,8 @@ Write-Host ""
 Write-Host "[TEST 4] Simulating $SimulateRuns random blog selections and message composition:" -ForegroundColor Yellow
 Write-Host ""
 
+$platformsToTest = if ($Platform -eq 'All') { @('X', 'LinkedIn') } else { @($Platform) }
+
 $allIds = $blogPosts.id
 
 for ($i = 1; $i -le $SimulateRuns; $i++) {
@@ -85,37 +94,59 @@ for ($i = 1; $i -le $SimulateRuns; $i++) {
     }
     $hashtags = $hashtags.Trim()
 
-    # Build message (X wraps URLs via t.co = always 23 chars)
-    $tcoLength = 23
-    $blogUrl = $blogData.url
-    $twitterUsername = $blogData.user.twitter_username
-    $textPrefix = "RT: $($blogData.title), by @$twitterUsername. $($hashtags) "
-    $Message = $textPrefix + $blogUrl
-
-    # Calculate weighted length: text (actual) + URL (23 chars for t.co)
-    $weightedLength = $textPrefix.Length + $tcoLength
-
-    # Truncate if weighted length exceeds 280
-    $truncated = $false
-    if ($weightedLength -gt 280) {
-        $availableTextLength = 280 - $tcoLength - 4  # 4 for "... "
-        $truncatedPrefix = $textPrefix.Substring(0, $availableTextLength) + "... "
-        $Message = $truncatedPrefix + $blogUrl
-        $weightedLength = $truncatedPrefix.Length + $tcoLength
-        $truncated = $true
-    }
-
-    # Status color based on weighted length
-    $charCount = $Message.Length
-    if ($weightedLength -le 280) { $color = 'Green' } else { $color = 'Red' }
-
     Write-Host "  --- Run $i ---" -ForegroundColor Cyan
     Write-Host "  Blog: $($blogData.title)" -ForegroundColor White
     Write-Host "  Published: $($blogData.published_at)" -ForegroundColor DarkGray
-    Write-Host "  URL: $blogUrl" -ForegroundColor DarkGray
+    Write-Host "  URL: $($blogData.url)" -ForegroundColor DarkGray
     Write-Host "  Tags: $($blogData.tags)" -ForegroundColor DarkGray
-    Write-Host "  Message (weighted: $weightedLength/280, actual: $charCount chars)$(if($truncated){' [TRUNCATED]'}):" -ForegroundColor $color
-    Write-Host "  $Message" -ForegroundColor White
+
+    foreach ($plt in $platformsToTest) {
+        switch ($plt) {
+            'X' {
+                # X message: max 280 weighted chars (URLs count as 23 via t.co)
+                $tcoLength = 23
+                $blogUrl = $blogData.url
+                $twitterUsername = $blogData.user.twitter_username
+                $textPrefix = "RT: $($blogData.title), by @$twitterUsername. $($hashtags) "
+                $Message = $textPrefix + $blogUrl
+
+                $weightedLength = $textPrefix.Length + $tcoLength
+
+                $truncated = $false
+                if ($weightedLength -gt 280) {
+                    $availableTextLength = 280 - $tcoLength - 4
+                    $truncatedPrefix = $textPrefix.Substring(0, $availableTextLength) + "... "
+                    $Message = $truncatedPrefix + $blogUrl
+                    $weightedLength = $truncatedPrefix.Length + $tcoLength
+                    $truncated = $true
+                }
+
+                $charCount = $Message.Length
+                $color = if ($weightedLength -le 280) { 'Green' } else { 'Red' }
+
+                Write-Host "  [X] (weighted: $weightedLength/280, actual: $charCount chars)$(if($truncated){' [TRUNCATED]'}):" -ForegroundColor $color
+                Write-Host "  $Message" -ForegroundColor White
+            }
+            'LinkedIn' {
+                # LinkedIn message: max 3000 chars + article preview
+                $Commentary = @"
+Check out my latest blog post!
+
+$($blogData.title)
+
+$hashtags
+
+#MicrosoftMVP #Azure #DevCommunity
+"@
+                $charCount = $Commentary.Length
+                $color = if ($charCount -le 3000) { 'Green' } else { 'Red' }
+
+                Write-Host "  [LinkedIn] ($charCount/3000 chars):" -ForegroundColor $color
+                Write-Host "  Commentary: $($Commentary.Replace("`n", ' | '))" -ForegroundColor White
+                Write-Host "  Article: $($blogData.title) → $($blogData.url)" -ForegroundColor DarkGray
+            }
+        }
+    }
     Write-Host ""
 }
 
@@ -156,5 +187,9 @@ Write-Host " Next steps:" -ForegroundColor Cyan
 Write-Host "  1. Deploy to Azure with dryRun='true'" -ForegroundColor White
 Write-Host "  2. Trigger function manually in Azure" -ForegroundColor White
 Write-Host "  3. Check logs in Azure Portal" -ForegroundColor White
-Write-Host "  4. Buy credits, set dryRun='false', test live" -ForegroundColor White
+Write-Host "  4. Set dryRun='false' and test live" -ForegroundColor White
+Write-Host "" -ForegroundColor White
+Write-Host " Platform schedules:" -ForegroundColor Cyan
+Write-Host "  X:        Wed 08:30 UTC, Thu 13:30 UTC" -ForegroundColor White
+Write-Host "  LinkedIn: Mon 09:00 UTC, Fri 14:00 UTC" -ForegroundColor White
 Write-Host "============================================" -ForegroundColor Cyan

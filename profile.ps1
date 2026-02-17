@@ -15,3 +15,8 @@ if ($env:IDENTITY_ENDPOINT) {
     Disable-AzContextAutosave -Scope Process | Out-Null
     Connect-AzAccount -Identity
 }
+
+# Import shared modules used by all Publish-*-Blog functions.
+# BlogHelper provides the Get-Blog function for platform-agnostic blog selection
+# and rotation tracking (table: 'blogtracker', partitions: 'Posted-X', 'Posted-LinkedIn', etc.)
+Import-Module "$PSScriptRoot/Modules/BlogHelper" -Force
