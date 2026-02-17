@@ -151,7 +151,7 @@ function Send-LinkedInPost {
 
     $response = Invoke-RestMethod -Uri $apiUrl -Method Post -Body $jsonBody -ContentType 'application/json' -Headers @{
         'Authorization'             = "Bearer $AccessToken"
-        'LinkedIn-Version'          = '202401'
+        'LinkedIn-Version'          = '202501'
         'X-Restli-Protocol-Version' = '2.0.0'
     }
 
@@ -302,7 +302,8 @@ catch {
         $storageAccount = Get-AzStorageAccount -ResourceGroupName $resourceGroupName -Name $storageAccountName
         $storageContext = $storageAccount.Context
         $cloudTable = (Get-AzStorageTable -Name 'failed' -Context $storageContext).CloudTable
-        $null = Add-AzTableRow -table $cloudTable -partitionKey 'Fail-LinkedIn' -rowKey "$statusMessage -- [$Commentary]"
+        $safeRowKey = ("$statusMessage -- [$Commentary]" -replace '[\\/#?]', '_').Substring(0, [Math]::Min(1024, "$statusMessage -- [$Commentary]".Length))
+        $null = Add-AzTableRow -table $cloudTable -partitionKey 'Fail-LinkedIn' -rowKey $safeRowKey
     }
     catch {
         Write-Error "Failed to log error to table storage: $($_.Exception.Message)"
