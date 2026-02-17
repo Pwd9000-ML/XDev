@@ -129,6 +129,14 @@ for ($i = 1; $i -le $SimulateRuns; $i++) {
             }
             'LinkedIn' {
                 # LinkedIn message: max 3000 chars + article preview
+                # Merge dynamic blog tags + static tags, deduplicated (case-insensitive)
+                $staticTags = @('GitHubCopilot', 'GenerativeAI', 'DevOps', 'MicrosoftMVP', 'MVPBuzz', 'AI', 'DevCommunity', 'TechCommunity', 'OpenSource', 'DevTo', 'CloudComputing')
+                $blogTags = ($blogData.tags -split ',\s*') | Where-Object { $_ -ne '' } | ForEach-Object { $_ -replace '-', '' }
+                $allTags = $blogTags + $staticTags
+                $seen = @{}
+                $uniqueTags = $allTags | Where-Object { $lower = $_.ToLower(); if (-not $seen[$lower]) { $seen[$lower] = $true; $true } else { $false } }
+                $liHashtags = ($uniqueTags | ForEach-Object { '#' + $_ }) -join ' '
+
                 $publishedDate = ([DateTime]$blogData.published_at).ToString('dd/MM/yyyy')
 
                 $Commentary = @"
@@ -137,7 +145,7 @@ Check out my blog post published on $publishedDate
 $($blogData.title)
 Article URL: $($blogData.url)
 
-$hashtags #MicrosoftMVP #Azure #DevCommunity
+$liHashtags
 "@
 
                 $charCount = $Commentary.Length

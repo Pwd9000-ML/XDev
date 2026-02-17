@@ -192,16 +192,16 @@ try {
     # 1. Select a random blog post (with rotation tracking for LinkedIn)
     [PSCustomObject]$blogToPost = Get-Blog -URI $URI -resourceGroupName $resourceGroupName -storageAccountName $storageAccountName -platform 'LinkedIn' -excludeIds $excludeIds -excludeYears $excludeYears
 
-    # 2. Build hashtags from blog tags (use -split for proper delimiter; remove hyphens which break hashtags)
-    $hashtags = (($blogToPost.tags -split ',\s*') | Where-Object { $_ -ne '' } | ForEach-Object { '#' + ($_ -replace '-', '') }) -join ' '
+    # 2. Build hashtags from blog tags + static tags, deduplicated (case-insensitive)
+    $staticTags = @('GitHubCopilot', 'GenerativeAI', 'DevOps', 'MicrosoftMVP', 'MVPBuzz', 'AI', 'DevCommunity', 'TechCommunity', 'OpenSource', 'DevTo', 'CloudComputing')
+    $blogTags = ($blogToPost.tags -split ',\s*') | Where-Object { $_ -ne '' } | ForEach-Object { $_ -replace '-', '' }
+    $allTags = $blogTags + $staticTags
+    $seen = @{}
+    $uniqueTags = $allTags | Where-Object { $lower = $_.ToLower(); if (-not $seen[$lower]) { $seen[$lower] = $true; $true } else { $false } }
+    $hashtags = ($uniqueTags | ForEach-Object { '#' + $_ }) -join ' '
 
     # 3. Compose LinkedIn post (max 3000 chars — much more room than X!)
-    # Uses rotating commentary templates to keep posts fresh and avoid repetition.
-    # Each template uses the blog's description, title, tags, and reading time.
-    $blogDescription = if ($blogToPost.description) { $blogToPost.description } else { '' }
-    $readingTime = if ($blogToPost.reading_time_minutes) { "$($blogToPost.reading_time_minutes) min read" } else { '' }
-    $reactions = if ($blogToPost.positive_reactions_count -gt 0) { "$($blogToPost.positive_reactions_count) reactions" } else { '' }
-$publishedDate = ([DateTime]$blogToPost.published_at).ToString('dd/MM/yyyy')
+    $publishedDate = ([DateTime]$blogToPost.published_at).ToString('dd/MM/yyyy')
 
     $Commentary = @"
 Check out my blog post published on $publishedDate
@@ -209,7 +209,7 @@ Check out my blog post published on $publishedDate
 $($blogToPost.title)
 Article URL: $($blogToPost.url)
 
-$hashtags #MicrosoftMVP #Azure #DevCommunity
+$hashtags
 "@
 
     $ArticleUrl = $blogToPost.url
