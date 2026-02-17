@@ -138,15 +138,65 @@ for ($i = 1; $i -le $SimulateRuns; $i++) {
                 $liHashtags = ($uniqueTags | ForEach-Object { '#' + $_ }) -join ' '
 
                 $publishedDate = ([DateTime]$blogData.published_at).ToString('dd/MM/yyyy')
+                $blogDescription = if ($blogData.description) { $blogData.description } else { '' }
 
-                $Commentary = @"
-Check out my blog post published on $publishedDate
+                # Uses the same 5 rotating fun commentary templates as the live function
+                $commentaryTemplates = @(
+                    @"
+Welcome aboard the AI-powered time machine! This week we're warping back to $publishedDate to revisit one of my popular blog posts from the archives: `"$($blogData.title)`"
 
-$($blogData.title)
+$(if ($blogDescription) { "`n$blogDescription" })
+
 Article URL: $($blogData.url)
 
 $liHashtags
 "@
+                    ,
+                    @"
+Now playing on the DevOps Mixtape... A throwback track from $publishedDate that still slaps! Hit play and check out this banger from the blog archives: `"$($blogData.title)`"
+$(if ($blogDescription) { "`n$blogDescription" })
+
+Article URL: $($blogData.url)
+
+$liHashtags
+"@
+                    ,
+                    @"
+BREAKING NEWS from the Dev Community! Our reporters have uncovered a blog post from $publishedDate that's still making waves today. Read all about it!
+
+`"$($blogData.title)`"
+$(if ($blogDescription) { "`n$blogDescription" })
+
+Article URL: $($blogData.url)
+
+$liHashtags
+"@
+                    ,
+                    @"
+Today's treasure from the blog vault! While digging through the archives, I unearthed this gem from $publishedDate. Dust it off and give it a read!
+
+`"$($blogData.title)`"
+$(if ($blogDescription) { "`n$blogDescription" })
+
+Article URL: $($blogData.url)
+
+$liHashtags
+"@
+                    ,
+                    @"
+BEEP BOOP! Your friendly neighbourhood blog bot here! My circuits have selected a post from $publishedDate for your reading pleasure. Enjoy, humans!
+
+`"$($blogData.title)`"
+$(if ($blogDescription) { "`n$blogDescription" })
+
+Article URL: $($blogData.url)
+
+$liHashtags
+"@
+                )
+
+                $Commentary = $commentaryTemplates | Get-Random
+                $Commentary = ($Commentary -split "`n" | Where-Object { $_.Trim() -ne '' }) -join "`n"
 
                 $charCount = $Commentary.Length
                 $color = if ($charCount -le 3000) { 'Green' } else { 'Red' }

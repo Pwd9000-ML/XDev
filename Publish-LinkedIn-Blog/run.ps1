@@ -201,16 +201,70 @@ try {
     $hashtags = ($uniqueTags | ForEach-Object { '#' + $_ }) -join ' '
 
     # 3. Compose LinkedIn post (max 3000 chars — much more room than X!)
+    # Uses 5 rotating fun commentary templates to keep posts fresh and engaging.
     $publishedDate = ([DateTime]$blogToPost.published_at).ToString('dd/MM/yyyy')
+    $blogDescription = if ($blogToPost.description) { $blogToPost.description } else { '' }
 
-    $Commentary = @"
-Check out my blog post published on $publishedDate
+    $commentaryTemplates = @(
+        @"
+Welcome aboard the AI-powered time machine! This week we're warping back to $publishedDate to revisit one of my popular blog posts from the archives.
 
-$($blogToPost.title)
+`"$($blogToPost.title)`"
+$(if ($blogDescription) { "`n$blogDescription" })
+
 Article URL: $($blogToPost.url)
 
 $hashtags
 "@
+        ,
+        @"
+Now playing on the DevOps Mixtape... A throwback track from $publishedDate that still slaps! Hit play and check out this banger from the blog archives.
+
+`"$($blogToPost.title)`"
+$(if ($blogDescription) { "`n$blogDescription" })
+
+Article URL: $($blogToPost.url)
+
+$hashtags
+"@
+        ,
+        @"
+BREAKING NEWS from the Dev Community! Our reporters have uncovered a blog post from $publishedDate that's still making waves today. Read all about it!
+
+`"$($blogToPost.title)`"
+$(if ($blogDescription) { "`n$blogDescription" })
+
+Article URL: $($blogToPost.url)
+
+$hashtags
+"@
+        ,
+        @"
+Today's treasure from the blog vault! While digging through the archives, I unearthed this gem from $publishedDate. Dust it off and give it a read!
+
+`"$($blogToPost.title)`"
+$(if ($blogDescription) { "`n$blogDescription" })
+
+Article URL: $($blogToPost.url)
+
+$hashtags
+"@
+        ,
+        @"
+BEEP BOOP! Your friendly neighbourhood blog bot here! My circuits have selected a post from $publishedDate for your reading pleasure. Enjoy, humans!
+
+`"$($blogToPost.title)`"
+$(if ($blogDescription) { "`n$blogDescription" })
+
+Article URL: $($blogToPost.url)
+
+$hashtags
+"@
+    )
+
+    # Pick a random template and clean up any blank lines from empty conditional fields
+    $Commentary = $commentaryTemplates | Get-Random
+    $Commentary = ($Commentary -split "`n" | Where-Object { $_.Trim() -ne '' }) -join "`n"
 
     $ArticleUrl = $blogToPost.url
     $ArticleTitle = $blogToPost.title

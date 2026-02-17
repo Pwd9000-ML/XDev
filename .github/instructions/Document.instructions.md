@@ -8,5 +8,5 @@ applyTo: '**'
 - Use comments to break down the script into logical sections, making it easier to navigate and understand the overall structure.
 - If there are any external dependencies or required configurations (e.g., environment variables, API keys), document these clearly in the comments at the top of the script.
 - When updating existing scripts, review the comments to ensure they are still accurate and relevant. Update them as needed to reflect any changes in the code or functionality.
-- Allways use british English for comments (e.g., "optimise" instead of "optimize", "colour" instead of "color").
+- Always use british English for comments (e.g., "optimise" instead of "optimize", "colour" instead of "color").
 
