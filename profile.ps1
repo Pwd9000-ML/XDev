@@ -20,3 +20,7 @@ if ($env:IDENTITY_ENDPOINT) {
 # BlogHelper provides the Get-Blog function for platform-agnostic blog selection
 # and rotation tracking (table: 'blogtracker', partitions: 'Posted-X', 'Posted-LinkedIn', etc.)
 Import-Module "$PSScriptRoot/Modules/BlogHelper" -Force
+
+# XPostHelper provides Send-XPost and Invoke-XBlogPost for X (formerly Twitter)
+# posting via OAuth 1.0a API v2. Used by Publish-X-Blog-UK and Publish-X-Blog-US.
+Import-Module "$PSScriptRoot/Modules/XPostHelper" -Force
