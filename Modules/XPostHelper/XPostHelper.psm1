@@ -183,7 +183,23 @@ function Invoke-XBlogPost {
 
         $blogUrl = $blogToPost.url
         # Use twitter_username from DEV.to profile (field still named twitter_username in DEV.to API)
-        $textPrefix = "RT: $($blogToPost.title), by @$($blogToPost.user.twitter_username). $($hashtags) "
+        $author = "@$($blogToPost.user.twitter_username)"
+        $title = $blogToPost.title
+
+        # Rotating catchy prefixes — themed to match the LinkedIn commentary style.
+        # Each template ends with a trailing space so the t.co-wrapped URL appends cleanly.
+        # Keep these reasonably short; the truncation logic below still trims if needed.
+        $prefixTemplates = @(
+            "RT: $title, by $author. $hashtags ",
+            "🚀 Time machine drop! $title - by $author $hashtags ",
+            "🎵 On the DevOps Mixtape: $title 🔥 by $author $hashtags ",
+            "📰 BREAKING from the #DEVCommunity : $title - by $author $hashtags ",
+            "💎 Blog vault gem unearthed: $title ⛏️ by $author $hashtags ",
+            "🤖 BEEP BOOP! Bot recommends: $title ⚡ by $author $hashtags "
+        )
+
+        # Pick a random prefix for variety across posts
+        $textPrefix = $prefixTemplates | Get-Random
         $Message = $textPrefix + $blogUrl
 
         # Calculate weighted length: text portion (actual chars) + URL (23 chars for t.co)

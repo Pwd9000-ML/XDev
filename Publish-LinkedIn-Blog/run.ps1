@@ -245,7 +245,7 @@ try {
     $hashtags = ($uniqueTags | ForEach-Object { '#' + $_ }) -join ' '
 
     # 3. Compose LinkedIn post (max 3000 chars — much more room than X!)
-    # Uses 5 rotating fun commentary templates to keep posts fresh and engaging.
+    # Uses 10 rotating fun commentary templates to keep posts fresh and engaging.
     # Note: LinkedIn API ("little text format") does NOT support markdown bold/italic.
     # We use Unicode Sans-Serif Bold characters via ConvertTo-UnicodeBold instead.
     $publishedDate = ([DateTime]$blogToPost.published_at).ToString('dd/MM/yyyy')
@@ -309,6 +309,56 @@ $hashtags
 🤖 $(ConvertTo-UnicodeBold 'BEEP BOOP!') Your friendly neighbourhood blog bot here!
 
 My circuits have selected a post from $boldDate for your reading pleasure. ⚡ Enjoy, humans! 👾
+
+$blogDetails
+
+$hashtags
+"@
+        ,
+        @"
+🕹️ $(ConvertTo-UnicodeBold 'INSERT COIN to continue...')
+
+Player 1 has unlocked a bonus level from $boldDate! 🎮 Power up your knowledge with this classic from the blog arcade. 👾
+
+$blogDetails
+
+$hashtags
+"@
+        ,
+        @"
+👨‍🍳 $(ConvertTo-UnicodeBold "Today's special from the blog kitchen!")
+
+Freshly reheated from $boldDate and tastier than ever. 🍳 Grab a cuppa and tuck in, this one's a proper recipe for success! ☕
+
+$blogDetails
+
+$hashtags
+"@
+        ,
+        @"
+🚀 $(ConvertTo-UnicodeBold 'Mission Control to all devs...')
+
+We are GO for launch! 🛰️ Today's payload is a stellar post from $boldDate, buckle up and enjoy the orbit around the archives. 🌌
+
+$blogDetails
+
+$hashtags
+"@
+        ,
+        @"
+🕵️ $(ConvertTo-UnicodeBold 'Case file reopened!')
+
+The evidence points to a cracking blog post from $boldDate. 🔍 Follow the clues and crack the case wide open. 🗂️
+
+$blogDetails
+
+$hashtags
+"@
+        ,
+        @"
+📬 $(ConvertTo-UnicodeBold 'Postcard from the past!')
+
+Greetings from $boldDate! 🌴 Wish you were here, but since you're not, here's a souvenir blog post to enjoy from the comfort of your dev chair. ✈️
 
 $blogDetails
 
